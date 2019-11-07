@@ -7,7 +7,7 @@ from HW08_Haritha_Pothapragada import file_reading_gen
 
 class Student:
     """This is Student class with a variable to with the Pretty Table fields"""
-    PT_FIELD = ['CWID', 'Name', 'Completed Course']
+    PT_FIELD = ['CWID', 'Name', 'Major', 'Completed Courses', 'Remaining Required', 'Remaining Electives']
 
     def __init__(self, id, name, dept):
         """This is Student class which stores CWID,Name,Completed Course and a dictionary"""
@@ -22,7 +22,7 @@ class Student:
 
     def get_student(self):
         """returns cwid,name,_course_dict.keys (sorted)"""
-        return [self._cwid, self._name, sorted(self._course_dict.keys())]
+        return [self._cwid, self._name, self._dept, self._course_dict]
 
 
 class Instructor:
@@ -46,6 +46,41 @@ class Instructor:
             yield ([self._cwid, self._name, self._dept, key, value])
 
 
+class Major:
+    """This is Major class with a variable to with the Pretty Table fields and the passing grades"""
+    PASSING_GRADES = {'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C'}
+    PT_FIELD = ['Dept', 'Required', 'Electives']
+
+    def __init__(self, major):
+        """This initializes the major and two sets for required courses and elective courses """
+        self._major = major
+        self._required = set()
+        self._elective = set()
+
+    def add_course(self, flag, course):
+        """This populates the two sets"""
+        if flag.upper() == 'R':
+            self._required.add(course)
+        elif flag.upper() == 'E':
+            self._elective.add(course)
+        else:
+            raise ValueError(f"unexpected flag '{flag}' encountered in major.txt")
+
+    def major_pt(self):
+        """this returns the values required of the major pretty table"""
+        return [self._major, sorted(self._required), sorted(self._elective)]
+
+    def course_details(self, course_dict):
+        """this gives completed ,required and elective courses for the student pretty table"""
+        completed = {course for course, grade in course_dict.items() if grade in Major.PASSING_GRADES}
+        required = set(sorted(self._required - completed))
+        if len(self._elective - completed) == 3:
+            electives = set(sorted(self._elective))
+        else:
+            electives = None
+        return [sorted(list(completed)), required, electives]
+
+
 class Repository:
     """This the Repository class"""
 
@@ -53,17 +88,23 @@ class Repository:
         """This initializes the student dict , instructor dict and opens these three files"""
         self._students = {}
         self._instructors = {}
+        self._major = {}
         self._get_students(os.path.join(dir_path, "students.txt"))
         self._get_instructors(os.path.join(dir_path, "instructors.txt"))
         self._get_grades(os.path.join(dir_path, "grades.txt"))
+        self._get_major(os.path.join(dir_path, "majors.txt"))
         if ptable:
+            print("Majors Summary")
+            self.major_prettytable()
+            print("Students Summary")
             self.student_prettytable()
+            print("Instructors Summary")
             self.instructor_prettytable()
 
     def _get_students(self, path):
         """this function reads the students.txt file and stores it in a dict{cwid:Student}"""
         try:
-            for cwid, name, major in file_reading_gen(path, 3, sep='\t', header=False):
+            for cwid, name, major in file_reading_gen(path, 3, sep=';', header=True):
                 self._students[cwid] = Student(cwid, name, major)
         except FileNotFoundError as fnfe:
             print(fnfe)
@@ -75,7 +116,7 @@ class Repository:
     def _get_instructors(self, path):
         """this function reads the instructors.txt file and stores it in a dict{cwid:Instructor}"""
         try:
-            for cwid, name, major in file_reading_gen(path, 3, sep='\t', header=False):
+            for cwid, name, major in file_reading_gen(path, 3, sep='|', header=True):
                 self._instructors[cwid] = Instructor(cwid, name, major)
         except FileNotFoundError as fnfe:
             print(fnfe)
@@ -85,9 +126,9 @@ class Repository:
             print(ke)
 
     def _get_grades(self, path):
-        """This function reads the grade.txt and adds the items in the Student and teh Instructor instance"""
+        """This function reads the grade.txt and adds the items in the Student and the Instructor instance"""
         try:
-            for student_cwid, course, grade, instructor_cwid in file_reading_gen(path, 4, sep='\t', header=False):
+            for student_cwid, course, grade, instructor_cwid in file_reading_gen(path, 4, sep='|', header=True):
                 if student_cwid in self._students:
                     self._students[student_cwid].set_grades(course, grade)
                 else:
@@ -101,11 +142,34 @@ class Repository:
         except ValueError as ve:
             print(ve)
 
+    def _get_major(self, path):
+        """This function reads the majors.txt and adds the items in the Major instance"""
+        try:
+            for dept, flag, course in file_reading_gen(path, 3, sep='\t', header=False):
+                if dept not in self._major:
+                    self._major[dept] = Major(dept)
+                self._major[dept].add_course(flag, course)
+        except FileNotFoundError as fnfe:
+            print(fnfe)
+        except ValueError as ve:
+            print(ve)
+        except KeyError as ke:
+            print(ke)
+
+    def major_prettytable(self):
+        """prints the major pretty table"""
+        pt_major = PrettyTable(Major.PT_FIELD)
+        for i in self._major.keys():
+            pt_major.add_row(self._major[i].major_pt())
+        print(pt_major)
+
     def student_prettytable(self):
         """prints the student pretty table"""
         pt_student = PrettyTable(Student.PT_FIELD)
         for key in self._students:
-            pt_student.add_row(self._students[key].get_student())
+            cwid, name, dept, course_dict = self._students[key].get_student()
+            completed, required, electives = (self._major[dept].course_details(course_dict))
+            pt_student.add_row([cwid, name, dept, completed, required, electives])
         print(pt_student)
 
     def instructor_prettytable(self):
@@ -119,5 +183,5 @@ class Repository:
 
 if __name__ == '__main__':
     """main function to create instance"""
-    REPO = Repository(r'C:\SSW810', ptable=True)
+    REPO = Repository(r'C:\SSW810\Repository', ptable=True)
     # test = Repository(r'C:\SSW810\Stevens_test')
