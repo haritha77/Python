@@ -73,9 +73,9 @@ class Major:
     def course_details(self, course_dict):
         """this gives completed ,required and elective courses for the student pretty table"""
         completed = {course for course, grade in course_dict.items() if grade in Major.PASSING_GRADES}
-        required = set(sorted(self._required - completed))
+        required = self._required - completed
         if len(self._elective - completed) == 3:
-            electives = set(sorted(self._elective))
+            electives = self._elective
         else:
             electives = None
         return [sorted(list(completed)), required, electives]
@@ -168,7 +168,11 @@ class Repository:
         pt_student = PrettyTable(Student.PT_FIELD)
         for key in self._students:
             cwid, name, dept, course_dict = self._students[key].get_student()
-            completed, required, electives = (self._major[dept].course_details(course_dict))
+            try:
+                completed, required, electives = (self._major[dept].course_details(course_dict))
+            except KeyError:
+                print(f"KeyError no such major found in major.txt {dept}")
+                return
             pt_student.add_row([cwid, name, dept, completed, required, electives])
         print(pt_student)
 
