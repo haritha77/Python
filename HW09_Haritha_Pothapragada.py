@@ -74,10 +74,11 @@ class Major:
         """this gives completed ,required and elective courses for the student pretty table"""
         completed = {course for course, grade in course_dict.items() if grade in Major.PASSING_GRADES}
         required = self._required - completed
-        if len(self._elective - completed) == 3:
-            electives = self._elective
-        else:
+        if self._elective.intersection(completed):
             electives = None
+        else:
+            electives = self._elective
+
         return [sorted(list(completed)), required, electives]
 
 
