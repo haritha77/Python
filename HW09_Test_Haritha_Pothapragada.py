@@ -11,7 +11,7 @@ class TestModule(unittest.TestCase):
         """This is used to test the major pretty table values """
         lis = []
         repo = Repository(r'C:\SSW810\Repository')
-        for i in repo._major.keys():
+        for i in repo._major:
             lis.append(repo._major[i].major_pt())
         result = [['SFEN', ['SSW 540', 'SSW 555', 'SSW 810'], ['CS 501', 'CS 546']],
                   ['CS', ['CS 546', 'CS 570'], ['SSW 565', 'SSW 810']]]
@@ -26,8 +26,10 @@ class TestModule(unittest.TestCase):
             completed, required, electives = (repo._major[dept].course_details(course_dict))
             lis.append([cwid, name, dept, completed, required, electives])
         result = [['10103', 'Jobs, S', 'SFEN', ['CS 501', 'SSW 810'], {'SSW 555', 'SSW 540'}, None],
-                  ['10115', 'Bezos, J', 'SFEN', ['SSW 810'], {'SSW 555', 'SSW 540'}, {'CS 501', 'CS 546'}],
-                  ['10183', 'Musk, E', 'SFEN', ['SSW 555', 'SSW 810'], {'SSW 540'}, {'CS 501', 'CS 546'}],
+                  ['10115', 'Bezos, J', 'SFEN', ['SSW 810'], {'SSW 555', 'SSW 540'},
+                   {'CS 501', 'CS 546'}],
+                  ['10183', 'Musk, E', 'SFEN', ['SSW 555', 'SSW 810'], {'SSW 540'},
+                   {'CS 501', 'CS 546'}],
                   ['11714', 'Gates, B', 'CS', ['CS 546', 'CS 570', 'SSW 810'], None, None],
                   ['11717', 'Kernighan, B', 'CS', [], {'CS 570', 'CS 546'}, {'SSW 810', 'SSW 565'}]]
         self.assertEqual(lis, result)
@@ -50,7 +52,8 @@ class TestModule(unittest.TestCase):
     def test_instructor_table_db(self):
         lis = list()
         db = sqlite3.connect(r"C:\SSW810\Repository\repo.db")
-        query = """select instr.CWID,instr.Name,instr.Dept,grade.Course,count(grade.StudentCWID) as no_of_stud
+        query = """select instr.CWID,instr.Name,instr.Dept,grade.Course,
+                    count(grade.StudentCWID) as no_of_stud
                          from HW11_instructors instr
                          join HW11_grades grade on instr.CWID=grade.InstructorCWID
                          group by grade.Course,grade.InstructorCWID;"""
