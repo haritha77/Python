@@ -191,12 +191,14 @@ class Repository:
     def instructor_table_db(self, db_path):
         pt_instructor = PrettyTable(Instructor.PT_FIELD)
         db = sqlite3.connect(db_path)
+        print("Instructor Pretty table with db call")
         query = """select instr.CWID,instr.Name,instr.Dept,grade.Course,count(grade.StudentCWID) as no_of_stud
                  from HW11_instructors instr
                  join HW11_grades grade on instr.CWID=grade.InstructorCWID
                  group by grade.Course,grade.InstructorCWID;"""
         for row in db.execute(query):
             pt_instructor.add_row(row)
+        db.close()
         print(pt_instructor)
 
 
