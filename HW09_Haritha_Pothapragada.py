@@ -1,6 +1,7 @@
 """This is HW09"""
 from collections import defaultdict
 import os
+import sqlite3
 from prettytable import PrettyTable
 from HW08_Haritha_Pothapragada import file_reading_gen
 
@@ -74,6 +75,8 @@ class Major:
         """this gives completed ,required and elective courses for the student pretty table"""
         completed = {course for course, grade in course_dict.items() if grade in Major.PASSING_GRADES}
         required = self._required - completed
+        if len(required) == 0:
+            required = None
         if self._elective.intersection(completed):
             electives = None
         else:
@@ -105,7 +108,7 @@ class Repository:
     def _get_students(self, path):
         """this function reads the students.txt file and stores it in a dict{cwid:Student}"""
         try:
-            for cwid, name, major in file_reading_gen(path, 3, sep=';', header=True):
+            for cwid, name, major in file_reading_gen(path, 3, sep='\t', header=True):
                 self._students[cwid] = Student(cwid, name, major)
         except FileNotFoundError as fnfe:
             print(fnfe)
@@ -117,7 +120,7 @@ class Repository:
     def _get_instructors(self, path):
         """this function reads the instructors.txt file and stores it in a dict{cwid:Instructor}"""
         try:
-            for cwid, name, major in file_reading_gen(path, 3, sep='|', header=True):
+            for cwid, name, major in file_reading_gen(path, 3, sep='\t', header=True):
                 self._instructors[cwid] = Instructor(cwid, name, major)
         except FileNotFoundError as fnfe:
             print(fnfe)
@@ -129,7 +132,7 @@ class Repository:
     def _get_grades(self, path):
         """This function reads the grade.txt and adds the items in the Student and the Instructor instance"""
         try:
-            for student_cwid, course, grade, instructor_cwid in file_reading_gen(path, 4, sep='|', header=True):
+            for student_cwid, course, grade, instructor_cwid in file_reading_gen(path, 4, sep='\t', header=True):
                 if student_cwid in self._students:
                     self._students[student_cwid].set_grades(course, grade)
                 else:
@@ -146,7 +149,7 @@ class Repository:
     def _get_major(self, path):
         """This function reads the majors.txt and adds the items in the Major instance"""
         try:
-            for dept, flag, course in file_reading_gen(path, 3, sep='\t', header=False):
+            for dept, flag, course in file_reading_gen(path, 3, sep='\t', header=True):
                 if dept not in self._major:
                     self._major[dept] = Major(dept)
                 self._major[dept].add_course(flag, course)
@@ -185,8 +188,20 @@ class Repository:
                 pt_instructor.add_row(i)
         print(pt_instructor)
 
+    def instructor_table_db(self, db_path):
+        pt_instructor = PrettyTable(Instructor.PT_FIELD)
+        db = sqlite3.connect(db_path)
+        query = """select instr.CWID,instr.Name,instr.Dept,grade.Course,count(grade.StudentCWID) as no_of_stud
+                 from HW11_instructors instr
+                 join HW11_grades grade on instr.CWID=grade.InstructorCWID
+                 group by grade.Course,grade.InstructorCWID;"""
+        for row in db.execute(query):
+            pt_instructor.add_row(row)
+        print(pt_instructor)
+
 
 if __name__ == '__main__':
     """main function to create instance"""
     REPO = Repository(r'C:\SSW810\Repository', ptable=True)
     # test = Repository(r'C:\SSW810\Stevens_test')
+    REPO.instructor_table_db(r"C:\SSW810\Repository\repo.db")
