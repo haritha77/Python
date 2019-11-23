@@ -19,7 +19,6 @@ def instructor():
                          group by grade.Course,grade.InstructorCWID;"""
         data = [{'cwid': CWID, 'name': Name, 'dept': Department, 'course': Course, 'student_cnt': stu_cnt}
                 for CWID, Name, Department, Course, stu_cnt in db.execute(query)]
-        print(data)
         db.close()
         return render_template(
             'instructors.html',
@@ -29,4 +28,4 @@ def instructor():
         )
 
 
-app.run(debug=True)
+app.run(debug=False)
